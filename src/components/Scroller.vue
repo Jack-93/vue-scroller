@@ -1,451 +1,419 @@
 <template>
-  <div class="_v-container" :id="containerId"
-       @touchstart="touchStart($event)"
-       @touchmove="touchMove($event)"
-       @touchend="touchEnd($event)"
-       @mousedown="mouseDown($event)"
-       @mousemove="mouseMove($event)"
-       @mouseup="mouseUp($event)"
-  >
+	<div class="_v-container" :id="containerId"
+		 @touchstart="touchStart($event)"
+		 @touchmove="touchMove($event)"
+		 @touchend="touchEnd($event)"
+		 @mousedown="mouseDown($event)"
+		 @mousemove="mouseMove($event)"
+		 @mouseup="mouseUp($event)"
+	>
 
-    <div class="_v-content" :id="contentId">
-      <div v-if="onRefresh" class="pull-to-refresh-layer"
-           :class="{'active': state == 1, 'active refreshing': state == 2}">
-        <span class="spinner-holder">
-          <img class="arrow" v-if="state != 2" src="../assets/arrow.svg">
-          <span class="text" v-if="state != 2">{{ refreshText }}</span>
-          <spinner class="spinner" v-if="state == 2"></spinner>
-        </span>
-      </div>
-
-      <slot></slot>
-
-      <div v-if="onInfinite" class="loading-layer">
-        <span class="spinner-holder" :class="{'active': showLoading}">
-          <spinner class="spinner"></spinner>
-        </span>
-
-        <div class="no-data-text"
-          :class="{'active': !showLoading && loadingState == 2}" v-text="noDataText">
-        </div>
-      </div>
-    </div>
-  </div>
+		<div class="_v-content" :id="contentId">
+			<div v-if="onRefresh" class="pull-to-refresh-layer"
+				   :class="{'active': state == 1, 'active refreshing': state == 2}">
+				<span class="spinner-holder">
+				  <img class="arrow" v-if="state != 2" src="../assets/arrow.svg">
+				  <span class="text" v-if="state != 2">{{ refreshText }}</span>
+				  <img class="spinner" v-if="state == 2" src="../assets/send_loading.svg"/>
+				</span>
+			</div>
+			<slot></slot>
+			<div v-if="onInfinite" class="loading-layer">
+				<span class="spinner-holder" :class="{'active': showLoading}">
+				 <img class="spinner" src="../assets/send_loading.svg"/>
+				</span>
+				<div class="no-data-text"
+					 :class="{'active': !showLoading && loadingState == 2}" v-text="noDataText">
+				</div>
+			</div>
+		</div>
+	</div>
 </template>
 <style lang="css" scoped>
 
-  ._v-container {
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+	._v-container {
+		-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+		width: 100%;
+		height: 100%;
+		position: absolute;
+		top: 0;
+		left: 0;
+		overflow: hidden;
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		-o-user-select: none;
+		user-select: none;
+	}
 
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    overflow: hidden;
+	._v-container > ._v-content {
+		width: 100%;
+		-webkit-transform-origin: left top;
+		-webkit-transform: translateZ(0);
+		-moz-transform-origin: left top;
+		-moz-transform: translateZ(0);
+		-ms-transform-origin: left top;
+		-ms-transform: translateZ(0);
+		-o-transform-origin: left top;
+		-o-transform: translateZ(0);
+		transform-origin: left top;
+		transform: translateZ(0);
+	}
 
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    -o-user-select: none;
-    user-select: none;
-  }
+	._v-container > ._v-content > .pull-to-refresh-layer {
+		width: 100%;
+		height: 60px;
+		margin-top: -60px;
+		text-align: center;
+		font-size: 16px;
+		color: #CCC;
+	}
 
-  ._v-container > ._v-content {
-    width: 100%;
+	._v-container > ._v-content > .loading-layer {
+		width: 100%;
+		height: 60px;
+		text-align: center;
+		font-size: 16px;
+		line-height: 60px;
+		color: #CCC;
+		position: relative;
+	}
 
-    -webkit-transform-origin: left top;
-    -webkit-transform: translateZ(0);
-    -moz-transform-origin: left top;
-    -moz-transform: translateZ(0);
-    -ms-transform-origin: left top;
-    -ms-transform: translateZ(0);
-    -o-transform-origin: left top;
-    -o-transform: translateZ(0);
-    transform-origin: left top;
-    transform: translateZ(0);
-  }
+	._v-container > ._v-content > .loading-layer > .no-data-text {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 1;
+	}
 
-  ._v-container > ._v-content > .pull-to-refresh-layer {
-    width: 100%;
-    height: 60px;
-    margin-top: -60px;
-    text-align: center;
-    font-size: 16px;
-    color: #ccc;
-  }
+	._v-container > ._v-content > .loading-layer > .spinner-holder,
+	._v-container > ._v-content > .loading-layer > .no-data-text {
+		opacity: 0;
+		transition: opacity .15s linear;
+		-webkit-transition: opacity .15s linear;
+	}
 
-  ._v-container > ._v-content > .loading-layer {
-    width: 100%;
-    height: 60px;
-    text-align: center;
-    font-size: 16px;
-    line-height: 60px;
-    color: #ccc;
-    position: relative;
-  }
+	._v-container > ._v-content > .loading-layer > .spinner-holder.active,
+	._v-container > ._v-content > .loading-layer > .no-data-text.active {
+		opacity: 1;
+	}
 
-  ._v-container > ._v-content > .loading-layer > .no-data-text
-  {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-  }
+	._v-container > ._v-content > .pull-to-refresh-layer .spinner-holder,
+	._v-container > ._v-content > .loading-layer .spinner-holder {
+		text-align: center;
+		-webkit-font-smoothing: antialiased;
+	}
 
-  ._v-container > ._v-content > .loading-layer > .spinner-holder,
-  ._v-container > ._v-content > .loading-layer > .no-data-text
-  {
-    opacity: 0;
-    transition: opacity .15s linear;
-    -webkit-transition: opacity .15s linear;
-  }
+	._v-container > ._v-content > .pull-to-refresh-layer .spinner-holder .arrow,
+	._v-container > ._v-content > .loading-layer .spinner-holder .arrow {
+		width: 20px;
+		height: 20px;
+		margin: 8px auto 0 auto;
+		-webkit-transform: translate3d(0, 0, 0) rotate(0deg);
+		transform: translate3d(0, 0, 0) rotate(0deg);
+		-webkit-transition: -webkit-transform .2s linear;
+		transition: transform .2s linear;
+	}
 
-  ._v-container > ._v-content > .loading-layer > .spinner-holder.active,
-  ._v-container > ._v-content > .loading-layer > .no-data-text.active
-  {
-    opacity: 1;
-  }
+	._v-container > ._v-content > .pull-to-refresh-layer .spinner-holder .text,
+	._v-container > ._v-content > .loading-layer .spinner-holder .text {
+		display: block;
+		margin: 0 auto;
+		font-size: 14px;
+		line-height: 20px;
+		color: #AAA;
+	}
 
-  ._v-container > ._v-content > .pull-to-refresh-layer .spinner-holder,
-  ._v-container > ._v-content > .loading-layer .spinner-holder {
-    text-align: center;
-    -webkit-font-smoothing: antialiased;
-  }
+	._v-container > ._v-content > .pull-to-refresh-layer .spinner-holder .spinner,
+	._v-container > ._v-content > .loading-layer .spinner-holder .spinner {
+		margin-top: 14px;
+		width: 32px;
+		height: 32px;
+	/ / svg style fill: #444;
+		stroke: #69717D;
+	}
 
-  ._v-container > ._v-content > .pull-to-refresh-layer .spinner-holder .arrow,
-  ._v-container > ._v-content > .loading-layer .spinner-holder .arrow {
-    width: 20px;
-    height: 20px;
-    margin: 8px auto 0 auto;
-
-    -webkit-transform: translate3d(0,0,0) rotate(0deg);
-    transform: translate3d(0,0,0) rotate(0deg);
-
-    -webkit-transition: -webkit-transform .2s linear;
-    transition: transform .2s linear;
-  }
-
-  ._v-container > ._v-content > .pull-to-refresh-layer .spinner-holder .text,
-  ._v-container > ._v-content > .loading-layer .spinner-holder .text {
-    display: block;
-    margin: 0 auto;
-    font-size: 14px;
-    line-height: 20px;
-    color: #aaa;
-  }
-
-  ._v-container > ._v-content > .pull-to-refresh-layer .spinner-holder .spinner,
-  ._v-container > ._v-content > .loading-layer .spinner-holder .spinner {
-    margin-top: 14px;
-    width: 32px;
-    height: 32px;
-
-    // svg style
-    fill: #444;
-    stroke: #69717d;
-  }
-
-  ._v-container > ._v-content > .pull-to-refresh-layer.active .spinner-holder .arrow {
-    -webkit-transform: translate3d(0,0,0) rotate(180deg);
-    transform: translate3d(0,0,0) rotate(180deg);
-  }
+	._v-container > ._v-content > .pull-to-refresh-layer.active .spinner-holder .arrow {
+		-webkit-transform: translate3d(0, 0, 0) rotate(180deg);
+		transform: translate3d(0, 0, 0) rotate(180deg);
+	}
 </style>
 <script>
-  import Scroller from '../module/core'
-  import getContentRender from '../module/render'
-  import Spinner from './Spinner.vue'
+	import Scroller from '../module/core'
+	import getContentRender from '../module/render'
 
-  const re = /^[\d]+(\%)?$/
+	const re = /^[\d]+(\%)?$/
 
-  const widthAndHeightCoerce = (v) => {
-    if (v[v.length - 1] != '%') return v + 'px'
-    return v
-  }
+	const widthAndHeightCoerce = (v) => {
+		if (v[v.length - 1] != '%') return v + 'px'
+		return v
+	}
 
-  const widthAndHeightValidator = (v) => {
-    return re.test(v)
-  }
+	const widthAndHeightValidator = (v) => {
+		return re.test(v)
+	}
 
-  export default {
-    components: {
-      Spinner
-    },
+	export default {
+		props: {
+			onRefresh: Function,
+			onInfinite: Function,
 
-    props: {
-      onRefresh: Function,
-      onInfinite: Function,
+			refreshText: {
+				type: String,
+				default: '下拉刷新'
+			},
 
-      refreshText: {
-        type: String,
-        default: '下拉刷新'
-      },
+			noDataText: {
+				type: String,
+				default: '没有更多数据'
+			},
 
-      noDataText: {
-        type: String,
-        default: '没有更多数据'
-      },
+			width: {
+				type: String,
+				default: '100%',
+				validator: widthAndHeightValidator
+			},
 
-      width: {
-        type: String,
-        default: '100%',
-        validator: widthAndHeightValidator
-      },
+			height: {
+				type: String,
+				default: '100%',
+				validator: widthAndHeightValidator
+			},
 
-      height: {
-        type: String,
-        default: '100%',
-        validator: widthAndHeightValidator
-      },
+			snapping: {
+				type: Boolean,
+				default: false
+			},
 
-      snapping: {
-        type: Boolean,
-        default: false
-      },
+			snapWidth: {
+				type: Number,
+				default: 100
+			},
 
-      snapWidth: {
-        type: Number,
-        default: 100
-      },
+			snapHeight: {
+				type: Number,
+				default: 100
+			},
 
-      snapHeight: {
-        type: Number,
-        default: 100
-      },
+			animating: {
+				type: Boolean,
+				default: true
+			},
 
-      animating: {
-        type: Boolean,
-        default: true
-      },
+			animationDuration: {
+				type: Number,
+				default: 250
+			},
 
-      animationDuration: {
-        type: Number,
-        default: 250
-      },
+			bouncing: {
+				type: Boolean,
+				default: true
+			}
+		},
 
-      bouncing: {
-        type: Boolean,
-        default: true
-      }
-    },
+		computed: {
+			w: function () {
+				return widthAndHeightCoerce(this.width)
+			},
 
-    computed: {
-      w: function () {
-        return widthAndHeightCoerce(this.width)
-      },
+			h: function () {
+				return widthAndHeightCoerce(this.height)
+			}
+		},
 
-      h: function () {
-        return widthAndHeightCoerce(this.height)
-      }
-    },
+		data(){
+			return {
+				containerId: 'outer-' + Math.random().toString(36).substring(3, 8),
+				contentId: 'inner-' + Math.random().toString(36).substring(3, 8),
+				state: 0, // 0: pull to refresh, 1: release to refresh, 2: refreshing
+				loadingState: 0, // 0: stop, 1: loading, 2: stopping loading
 
-    data(){
-      return {
-        containerId: 'outer-' + Math.random().toString(36).substring(3, 8),
-        contentId: 'inner-' + Math.random().toString(36).substring(3, 8),
-        state: 0, // 0: pull to refresh, 1: release to refresh, 2: refreshing
-        loadingState: 0, // 0: stop, 1: loading, 2: stopping loading
+				showLoading: false,
 
-        showLoading: false,
+				container: undefined,
+				content: undefined,
+				scroller: undefined,
+				pullToRefreshLayer: undefined,
+				mousedown: false
+			}
+		},
 
-        container: undefined,
-        content: undefined,
-        scroller: undefined,
-        pullToRefreshLayer: undefined,
-        mousedown: false,
-        infiniteTimer: undefined
-      }
-    },
+		mounted() {
+			this.container = document.getElementById(this.containerId)
+			this.container.style.width = this.w
+			this.container.style.height = this.h
 
-    mounted() {
-      this.container = document.getElementById(this.containerId)
-      this.container.style.width = this.w
-      this.container.style.height = this.h
+			this.content = document.getElementById(this.contentId)
+			this.pullToRefreshLayer = this.content.getElementsByTagName("div")[0]
 
-      this.content = document.getElementById(this.contentId)
-      this.pullToRefreshLayer = this.content.getElementsByTagName("div")[0]
+			let render = getContentRender(this.content)
 
-      let render = getContentRender(this.content)
+			let scrollerOptions = {
+				scrollingX: false
+			}
 
-      let scrollerOptions = {
-        scrollingX: false
-      }
+			this.scroller = new Scroller(render, {
+				scrollingX: false,
+				snapping: this.snapping,
+				animating: this.animating,
+				animationDuration: this.animationDuration,
+				bouncing: this.bouncing
+			})
 
-      this.scroller = new Scroller(render, {
-        scrollingX: false,
-        snapping: this.snapping,
-        animating: this.animating,
-        animationDuration: this.animationDuration,
-        bouncing: this.bouncing
-      })
+			// enable PullToRefresh
+			if (this.onRefresh) {
+				this.scroller.activatePullToRefresh(60, () => {
+					this.state = 1
+				}, () => {
+					this.state = 0
+				}, () => {
+					this.state = 2
 
-      // enable PullToRefresh
-      if (this.onRefresh) {
-        this.scroller.activatePullToRefresh(60, () => {
-          this.state = 1
-        }, () => {
-          this.state = 0
-        }, () => {
-          this.state = 2
+					this.$on('$finishPullToRefresh', () => {
+						setTimeout(() => {
+							this.state = 0
+							this.finishPullToRefresh()
+						})
+					})
 
-          this.$on('$finishPullToRefresh', () => {
-            setTimeout(() => {
-              this.state = 0
-              this.finishPullToRefresh()
-            })
-          })
+					this.onRefresh()
+				})
+			}
 
-          this.onRefresh()
-        })
-      }
+			// setup scroller
+			let rect = this.container.getBoundingClientRect()
+			this.scroller.setPosition(rect.left + this.container.clientLeft, rect.top + this.container.clientTop)
 
-      // enable infinite loading
-      if (this.onInfinite) {
-        this.infiniteTimer = setInterval(() => {
-          let {left, top, zoom} = this.scroller.getValues()
+			// snapping
+			if (this.snapping) {
+				this.scroller.setSnapSize(this.snapWidth, this.snapHeight)
+			}
+		},
+		methods: {
+			resize() {
+				let container = this.container;
+				let content = this.content;
+				this.scroller.setDimensions(container.clientWidth, container.clientHeight, content.offsetWidth, content.offsetHeight);
+			},
 
-          if (top + 60 > this.content.offsetHeight - this.container.clientHeight) {
-            if (this.loadingState) return
-            this.loadingState = 1
-            this.showLoading = true
-            this.onInfinite()
-          }
+			finishPullToRefresh() {
+				this.scroller.finishPullToRefresh()
+				setTimeout(() => {
+					this.resize()
+				})
+			},
 
-        }, 10);
-      }
+			triggerPullToRefresh() {
+				this.scroller.triggerPullToRefresh()
+			},
 
-      // setup scroller
-      let rect = this.container.getBoundingClientRect()
-      this.scroller.setPosition(rect.left + this.container.clientLeft, rect.top + this.container.clientTop)
+			scrollTo(x, y, animate) {
+				this.scroller.scrollTo(x, y, animate)
+			},
 
-      // snapping
-      if (this.snapping) {
-        // console.log(this.snapWidth, this.snapHeight)
-        this.scroller.setSnapSize(this.snapWidth, this.snapHeight)
-      }
+			scrollBy(x, y, animate) {
+				this.scroller.scrollBy(x, y, animate)
+			},
 
-      let delegate = {
-        resize: this.resize,
-        finishPullToRefresh: this.finishPullToRefresh,
-        triggerPullToRefresh: this.triggerPullToRefresh,
-        scrollTo: this.scrollTo,
-        scrollBy: this.scrollBy
-      }
-    },
+			touchStart(e) {
+				// Don't react if initial down happens on a form element
+				if (e.target.tagName.match(/input|textarea|select/i)) {
+					return
+				}
+				this.scroller.doTouchStart(e.touches, e.timeStamp)
+			},
 
-    destroyed() {
-      if (this.infiniteTimer) clearInterval(this.infiniteTimer);
-    },
+			touchMove(e) {
+				e.preventDefault()
+				this.scroller.doTouchMove(e.touches, e.timeStamp)
+			},
 
-    methods: {
-      resize() {
-        let container = this.container;
-        let content = this.content;
-        this.scroller.setDimensions(container.clientWidth, container.clientHeight, content.offsetWidth, content.offsetHeight);
-      },
+			touchEnd(e) {
+				this.scroller.doTouchEnd(e.timeStamp)
+				if(this.onInfinite){
+					let {left, top, zoom} = this.scroller.getValues()
+					if (top + 60 > this.content.offsetHeight - this.container.clientHeight) {
+						if (this.loadingState) return
+						this.loadingState = 1
+						this.showLoading = true
+						this.onInfinite()
+					}
+				}
+			},
 
-      finishPullToRefresh() {
-        this.scroller.finishPullToRefresh()
-        setTimeout(() => {
-          this.resize()
-        })
-      },
+			mouseDown(e) {
+				// Don't react if initial down happens on a form element
+				if (e.target.tagName.match(/input|textarea|select/i)) {
+					return
+				}
+				this.scroller.doTouchStart([{
+					pageX: e.pageX,
+					pageY: e.pageY
+				}], e.timeStamp)
+				this.mousedown = true
+			},
 
-      triggerPullToRefresh() {
-        this.scroller.triggerPullToRefresh()
-      },
+			mouseMove(e) {
+				if (!this.mousedown) {
+					return
+				}
+				this.scroller.doTouchMove([{
+					pageX: e.pageX,
+					pageY: e.pageY
+				}], e.timeStamp)
+				this.mousedown = true
+			},
 
-      scrollTo(x, y, animate) {
-        this.scroller.scrollTo(x, y, animate)
-      },
+			mouseUp(e) {
+				if (!this.mousedown) {
+					return
+				}
+				this.scroller.doTouchEnd(e.timeStamp)
+				this.mousedown = false
+				if(this.onInfinite){
+					let {left, top, zoom} = this.scroller.getValues()
+					if (top + 60 > this.content.offsetHeight - this.container.clientHeight) {
+						if (this.loadingState) return
+						this.loadingState = 1
+						this.showLoading = true
+						this.onInfinite()
+					}
+				}
+			},
+			// 获取位置
+			getPosition() {
+				let v = this.scroller.getValues()
 
-      scrollBy(x, y, animate) {
-        this.scroller.scrollBy(x, y, animate)
-      },
+				return {
+					left: parseInt(v.left),
+					top: parseInt(v.top)
+				}
+			},
 
-      touchStart(e) {
-        // Don't react if initial down happens on a form element
-        if (e.target.tagName.match(/input|textarea|select/i)) {
-          return
-        }
-        this.scroller.doTouchStart(e.touches, e.timeStamp)
-      },
+			resetLoadingState() {
+				let {left, top, zoom} = this.scroller.getValues()
+				let container = this.container;
+				let content = this.content;
+				if (top + 60 > this.content.offsetHeight - this.container.clientHeight) {
+					setTimeout(() => {
+						this.resetLoadingState()
+					}, 1000)
+				} else {
+					this.loadingState = 0
+				}
+			},
 
-      touchMove(e) {
-        e.preventDefault()
-        this.scroller.doTouchMove(e.touches, e.timeStamp)
-      },
+			finishInfinite(hideSpinner) {
+				this.loadingState = hideSpinner ? 2 : 0
+				this.showLoading = false
+				this.resize()
 
-      touchEnd(e) {
-        this.scroller.doTouchEnd(e.timeStamp)
-      },
-
-      mouseDown(e) {
-        // Don't react if initial down happens on a form element
-        if (e.target.tagName.match(/input|textarea|select/i)) {
-          return
-        }
-        this.scroller.doTouchStart([{
-          pageX: e.pageX,
-          pageY: e.pageY
-        }], e.timeStamp)
-        this.mousedown = true
-      },
-
-      mouseMove(e) {
-        if (!this.mousedown) {
-          return
-        }
-        this.scroller.doTouchMove([{
-          pageX: e.pageX,
-          pageY: e.pageY
-        }], e.timeStamp)
-        this.mousedown = true
-      },
-
-      mouseUp(e) {
-        if (!this.mousedown) {
-          return
-        }
-        this.scroller.doTouchEnd(e.timeStamp)
-        this.mousedown = false
-      },
-
-      // 获取位置
-      getPosition() {
-        let v = this.scroller.getValues()
-
-        return {
-          left: parseInt(v.left),
-          top: parseInt(v.top)
-        }
-      },
-
-      resetLoadingState() {
-        let {left, top, zoom} = this.scroller.getValues()
-        let container = this.container;
-        let content = this.content;
-
-        if (top + 60 > this.content.offsetHeight - this.container.clientHeight) {
-          setTimeout(() => {
-            this.resetLoadingState()
-          }, 1000)
-        } else {
-          this.loadingState = 0
-        }
-      },
-
-      finishInfinite(hideSpinner) {
-        this.loadingState = hideSpinner ? 2 : 0
-        this.showLoading = false
-        this.resize()
-
-        if (this.loadingState == 2) {
-          this.resetLoadingState()
-        }
-      }
-    }
-  }
+				if (this.loadingState == 2) {
+					this.resetLoadingState()
+				}
+			}
+		}
+	}
 </script>

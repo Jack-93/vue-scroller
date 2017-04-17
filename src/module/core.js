@@ -1,232 +1,233 @@
-(function(global) {
-  var time = Date.now || function() {
-      return +new Date();
-    };
-  var desiredFrames = 60;
-  var millisecondsPerSecond = 1000;
-  var running = {};
-  var counter = 1;
+(function (global) {
+	var time = Date.now || function () {
+			return +new Date();
+		};
+	var desiredFrames = 60;
+	var millisecondsPerSecond = 1000;
+	var running = {};
+	var counter = 1;
 
-  // Create namespaces
-  if (!global.core) {
-    global.core = { effect : {} };
+	// Create namespaces
+	if (!global.core) {
+		global.core = {effect: {}};
 
-  } else if (!core.effect) {
-    core.effect = {};
-  }
+	} else if (!core.effect) {
+		core.effect = {};
+	}
 
-  core.effect.Animate = {
+	core.effect.Animate = {
 
-    /**
-     * A requestAnimationFrame wrapper / polyfill.
-     *
-     * @param callback {Function} The callback to be invoked before the next repaint.
-     * @param root {HTMLElement} The root element for the repaint
-     */
-    requestAnimationFrame: (function() {
+		/**
+		 * A requestAnimationFrame wrapper / polyfill.
+		 *
+		 * @param callback {Function} The callback to be invoked before the next repaint.
+		 * @param root {HTMLElement} The root element for the repaint
+		 */
+		requestAnimationFrame: (function () {
 
-      // Check for request animation Frame support
-      var requestFrame = global.requestAnimationFrame || global.webkitRequestAnimationFrame || global.mozRequestAnimationFrame || global.oRequestAnimationFrame;
-      var isNative = !!requestFrame;
+			// Check for request animation Frame support
+			var requestFrame = global.requestAnimationFrame || global.webkitRequestAnimationFrame || global.mozRequestAnimationFrame || global.oRequestAnimationFrame;
+			var isNative = !!requestFrame;
 
-      if (requestFrame && !/requestAnimationFrame\(\)\s*\{\s*\[native code\]\s*\}/i.test(requestFrame.toString())) {
-        isNative = false;
-      }
+			if (requestFrame && !/requestAnimationFrame\(\)\s*\{\s*\[native code\]\s*\}/i.test(requestFrame.toString())) {
+				isNative = false;
+			}
 
-      if (isNative) {
-        return function(callback, root) {
-          requestFrame(callback, root)
-        };
-      }
+			if (isNative) {
+				return function (callback, root) {
+					requestFrame(callback, root)
+				};
+			}
 
-      var TARGET_FPS = 60;
-      var requests = {};
-      var requestCount = 0;
-      var rafHandle = 1;
-      var intervalHandle = null;
-      var lastActive = +new Date();
+			var TARGET_FPS = 60;
+			var requests = {};
+			var requestCount = 0;
+			var rafHandle = 1;
+			var intervalHandle = null;
+			var lastActive = +new Date();
 
-      return function(callback, root) {
-        var callbackHandle = rafHandle++;
+			return function (callback, root) {
+				var callbackHandle = rafHandle++;
 
-        // Store callback
-        requests[callbackHandle] = callback;
-        requestCount++;
+				// Store callback
+				requests[callbackHandle] = callback;
+				requestCount++;
 
-        // Create timeout at first request
-        if (intervalHandle === null) {
+				// Create timeout at first request
+				if (intervalHandle === null) {
 
-          intervalHandle = setInterval(function() {
+					intervalHandle = setInterval(function () {
 
-            var time = +new Date();
-            var currentRequests = requests;
+						var time = +new Date();
+						var currentRequests = requests;
 
-            // Reset data structure before executing callbacks
-            requests = {};
-            requestCount = 0;
+						// Reset data structure before executing callbacks
+						requests = {};
+						requestCount = 0;
 
-            for(var key in currentRequests) {
-              if (currentRequests.hasOwnProperty(key)) {
-                currentRequests[key](time);
-                lastActive = time;
-              }
-            }
+						for (var key in currentRequests) {
+							if (currentRequests.hasOwnProperty(key)) {
+								currentRequests[key](time);
+								lastActive = time;
+							}
+						}
 
-            // Disable the timeout when nothing happens for a certain
-            // period of time
-            if (time - lastActive > 2500) {
-              clearInterval(intervalHandle);
-              intervalHandle = null;
-            }
+						// Disable the timeout when nothing happens for a certain
+						// period of time
+						if (time - lastActive > 2500) {
+							clearInterval(intervalHandle);
+							intervalHandle = null;
+						}
 
-          }, 1000 / TARGET_FPS);
-        }
+					}, 1000 / TARGET_FPS);
+				}
 
-        return callbackHandle;
-      };
+				return callbackHandle;
+			};
 
-    })(),
-
-
-    /**
-     * Stops the given animation.
-     *
-     * @param id {Integer} Unique animation ID
-     * @return {Boolean} Whether the animation was stopped (aka, was running before)
-     */
-    stop: function(id) {
-      var cleared = running[id] != null;
-      if (cleared) {
-        running[id] = null;
-      }
-
-      return cleared;
-    },
+		})(),
 
 
-    /**
-     * Whether the given animation is still running.
-     *
-     * @param id {Integer} Unique animation ID
-     * @return {Boolean} Whether the animation is still running
-     */
-    isRunning: function(id) {
-      return running[id] != null;
-    },
+		/**
+		 * Stops the given animation.
+		 *
+		 * @param id {Integer} Unique animation ID
+		 * @return {Boolean} Whether the animation was stopped (aka, was running before)
+		 */
+		stop: function (id) {
+			var cleared = running[id] != null;
+			if (cleared) {
+				running[id] = null;
+			}
+
+			return cleared;
+		},
 
 
-    /**
-     * Start the animation.
-     *
-     * @param stepCallback {Function} Pointer to function which is executed on every step.
-     *   Signature of the method should be `function(percent, now, virtual) { return continueWithAnimation; }`
-     * @param verifyCallback {Function} Executed before every animation step.
-     *   Signature of the method should be `function() { return continueWithAnimation; }`
-     * @param completedCallback {Function}
-     *   Signature of the method should be `function(droppedFrames, finishedAnimation) {}`
-     * @param duration {Integer} Milliseconds to run the animation
-     * @param easingMethod {Function} Pointer to easing function
-     *   Signature of the method should be `function(percent) { return modifiedValue; }`
-     * @param root {Element ? document.body} Render root, when available. Used for internal
-     *   usage of requestAnimationFrame.
-     * @return {Integer} Identifier of animation. Can be used to stop it any time.
-     */
-    start: function(stepCallback, verifyCallback, completedCallback, duration, easingMethod, root) {
+		/**
+		 * Whether the given animation is still running.
+		 *
+		 * @param id {Integer} Unique animation ID
+		 * @return {Boolean} Whether the animation is still running
+		 */
+		isRunning: function (id) {
+			return running[id] != null;
+		},
 
-      var start = time();
-      var lastFrame = start;
-      var percent = 0;
-      var dropCounter = 0;
-      var id = counter++;
 
-      if (!root) {
-        root = document.body;
-      }
+		/**
+		 * Start the animation.
+		 *
+		 * @param stepCallback {Function} Pointer to function which is executed on every step.
+		 *   Signature of the method should be `function(percent, now, virtual) { return continueWithAnimation; }`
+		 * @param verifyCallback {Function} Executed before every animation step.
+		 *   Signature of the method should be `function() { return continueWithAnimation; }`
+		 * @param completedCallback {Function}
+		 *   Signature of the method should be `function(droppedFrames, finishedAnimation) {}`
+		 * @param duration {Integer} Milliseconds to run the animation
+		 * @param easingMethod {Function} Pointer to easing function
+		 *   Signature of the method should be `function(percent) { return modifiedValue; }`
+		 * @param root {Element ? document.body} Render root, when available. Used for internal
+		 *   usage of requestAnimationFrame.
+		 * @return {Integer} Identifier of animation. Can be used to stop it any time.
+		 */
+		start: function (stepCallback, verifyCallback, completedCallback, duration, easingMethod, root) {
 
-      // Compacting running db automatically every few new animations
-      if (id % 20 === 0) {
-        var newRunning = {};
-        for (var usedId in running) {
-          newRunning[usedId] = true;
-        }
-        running = newRunning;
-      }
+			var start = time();
+			var lastFrame = start;
+			var percent = 0;
+			var dropCounter = 0;
+			var id = counter++;
 
-      // This is the internal step method which is called every few milliseconds
-      var step = function(virtual) {
+			if (!root) {
+				root = document.body;
+			}
 
-        // Normalize virtual value
-        var render = virtual !== true;
+			// Compacting running db automatically every few new animations
+			if (id % 20 === 0) {
+				var newRunning = {};
+				for (var usedId in running) {
+					newRunning[usedId] = true;
+				}
+				running = newRunning;
+			}
 
-        // Get current time
-        var now = time();
+			// This is the internal step method which is called every few milliseconds
+			var step = function (virtual) {
 
-        // Verification is executed before next animation step
-        if (!running[id] || (verifyCallback && !verifyCallback(id))) {
+				// Normalize virtual value
+				var render = virtual !== true;
 
-          running[id] = null;
-          completedCallback && completedCallback(desiredFrames - (dropCounter / ((now - start) / millisecondsPerSecond)), id, false);
-          return;
+				// Get current time
+				var now = time();
 
-        }
+				// Verification is executed before next animation step
+				if (!running[id] || (verifyCallback && !verifyCallback(id))) {
 
-        // For the current rendering to apply let's update omitted steps in memory.
-        // This is important to bring internal state variables up-to-date with progress in time.
-        if (render) {
+					running[id] = null;
+					completedCallback && completedCallback(desiredFrames - (dropCounter / ((now - start) / millisecondsPerSecond)), id, false);
+					return;
 
-          var droppedFrames = Math.round((now - lastFrame) / (millisecondsPerSecond / desiredFrames)) - 1;
-          for (var j = 0; j < Math.min(droppedFrames, 4); j++) {
-            step(true);
-            dropCounter++;
-          }
+				}
 
-        }
+				// For the current rendering to apply let's update omitted steps in memory.
+				// This is important to bring internal state variables up-to-date with progress in time.
+				if (render) {
 
-        // Compute percent value
-        if (duration) {
-          percent = (now - start) / duration;
-          if (percent > 1) {
-            percent = 1;
-          }
-        }
+					var droppedFrames = Math.round((now - lastFrame) / (millisecondsPerSecond / desiredFrames)) - 1;
+					for (var j = 0; j < Math.min(droppedFrames, 4); j++) {
+						step(true);
+						dropCounter++;
+					}
 
-        // Execute step callback, then...
-        var value = easingMethod ? easingMethod(percent) : percent;
-        if ((stepCallback(value, now, render) === false || percent === 1) && render) {
-          running[id] = null;
-          completedCallback && completedCallback(desiredFrames - (dropCounter / ((now - start) / millisecondsPerSecond)), id, percent === 1 || duration == null);
-        } else if (render) {
-          lastFrame = now;
-          core.effect.Animate.requestAnimationFrame(step, root);
-        }
-      };
+				}
 
-      // Mark as running
-      running[id] = true;
+				// Compute percent value
+				if (duration) {
+					percent = (now - start) / duration;
+					if (percent > 1) {
+						percent = 1;
+					}
+				}
 
-      // Init first step
-      core.effect.Animate.requestAnimationFrame(step, root);
+				// Execute step callback, then...
+				var value = easingMethod ? easingMethod(percent) : percent;
+				if ((stepCallback(value, now, render) === false || percent === 1) && render) {
+					running[id] = null;
+					completedCallback && completedCallback(desiredFrames - (dropCounter / ((now - start) / millisecondsPerSecond)), id, percent === 1 || duration == null);
+				} else if (render) {
+					lastFrame = now;
+					core.effect.Animate.requestAnimationFrame(step, root);
+				}
+			};
 
-      // Return unique animation ID
-      return id;
-    }
-  };
+			// Mark as running
+			running[id] = true;
+
+			// Init first step
+			core.effect.Animate.requestAnimationFrame(step, root);
+
+			// Return unique animation ID
+			return id;
+		}
+	};
 })(window);
 
 var Scroller;
 
-(function(window) {
-	var NOOP = function(){};
+(function (window) {
+	var NOOP = function () {
+	};
 
 	// var core;
 
 	/**
 	 * A pure logic 'component' for 'virtual' scrolling/zooming.
 	 */
-	Scroller = function(callback, options) {
+	Scroller = function (callback, options) {
 
 		this.__callback = callback;
-    // core = animate;
+		// core = animate;
 
 		this.options = {
 
@@ -267,15 +268,15 @@ var Scroller;
 			speedMultiplier: 1,
 
 			/** Callback that is fired on the later of touch end or deceleration end,
-				provided that another scrolling action has not begun. Used to know
-				when to fade out a scrollbar. */
+			 provided that another scrolling action has not begun. Used to know
+			 when to fade out a scrollbar. */
 			scrollingComplete: NOOP,
 
 			/** This configures the amount of change applied to deceleration when reaching boundaries  **/
-      penetrationDeceleration : 0.03,
+			penetrationDeceleration: 0.03,
 
-      /** This configures the amount of change applied to acceleration when reaching boundaries  **/
-      penetrationAcceleration : 0.08
+			/** This configures the amount of change applied to acceleration when reaching boundaries  **/
+			penetrationAcceleration: 0.08
 
 		};
 
@@ -291,15 +292,15 @@ var Scroller;
 
 	/**
 	 * @param pos {Number} position between 0 (start of effect) and 1 (end of effect)
-	**/
-	var easeOutCubic = function(pos) {
+	 **/
+	var easeOutCubic = function (pos) {
 		return (Math.pow((pos - 1), 3) + 1);
 	};
 
 	/**
 	 * @param pos {Number} position between 0 (start of effect) and 1 (end of effect)
-	**/
-	var easeInOutCubic = function(pos) {
+	 **/
+	var easeInOutCubic = function (pos) {
 		if ((pos /= 0.5) < 1) {
 			return 0.5 * Math.pow(pos, 3);
 		}
@@ -311,10 +312,10 @@ var Scroller;
 	var members = {
 
 		/*
-		---------------------------------------------------------------------------
-			INTERNAL FIELDS :: STATUS
-		---------------------------------------------------------------------------
-		*/
+		 ---------------------------------------------------------------------------
+		 INTERNAL FIELDS :: STATUS
+		 ---------------------------------------------------------------------------
+		 */
 
 		/** {Boolean} Whether only a single finger is used in touch handling */
 		__isSingleTouch: false,
@@ -350,12 +351,11 @@ var Scroller;
 		__isAnimating: false,
 
 
-
 		/*
-		---------------------------------------------------------------------------
-			INTERNAL FIELDS :: DIMENSIONS
-		---------------------------------------------------------------------------
-		*/
+		 ---------------------------------------------------------------------------
+		 INTERNAL FIELDS :: DIMENSIONS
+		 ---------------------------------------------------------------------------
+		 */
 
 		/** {Integer} Available outer left position (from document perspective) */
 		__clientLeft: 0,
@@ -421,12 +421,11 @@ var Scroller;
 		__scheduledZoom: 0,
 
 
-
 		/*
-		---------------------------------------------------------------------------
-			INTERNAL FIELDS :: LAST POSITIONS
-		---------------------------------------------------------------------------
-		*/
+		 ---------------------------------------------------------------------------
+		 INTERNAL FIELDS :: LAST POSITIONS
+		 ---------------------------------------------------------------------------
+		 */
 
 		/** {Number} Left position of finger at start */
 		__lastTouchLeft: null,
@@ -441,12 +440,11 @@ var Scroller;
 		__positions: null,
 
 
-
 		/*
-		---------------------------------------------------------------------------
-			INTERNAL FIELDS :: DECELERATION SUPPORT
-		---------------------------------------------------------------------------
-		*/
+		 ---------------------------------------------------------------------------
+		 INTERNAL FIELDS :: DECELERATION SUPPORT
+		 ---------------------------------------------------------------------------
+		 */
 
 		/** {Integer} Minimum left scroll position during deceleration */
 		__minDecelerationScrollLeft: null,
@@ -467,12 +465,11 @@ var Scroller;
 		__decelerationVelocityY: null,
 
 
-
 		/*
-		---------------------------------------------------------------------------
-			PUBLIC API
-		---------------------------------------------------------------------------
-		*/
+		 ---------------------------------------------------------------------------
+		 PUBLIC API
+		 ---------------------------------------------------------------------------
+		 */
 
 		/**
 		 * Configures the dimensions of the client (outer) and content (inner) elements.
@@ -484,7 +481,7 @@ var Scroller;
 		 * @param contentWidth {Integer ? null} Outer width of inner element
 		 * @param contentHeight {Integer ? null} Outer height of inner element
 		 */
-		setDimensions: function(clientWidth, clientHeight, contentWidth, contentHeight) {
+		setDimensions: function (clientWidth, clientHeight, contentWidth, contentHeight) {
 
 			var self = this;
 
@@ -520,7 +517,7 @@ var Scroller;
 		 * @param left {Integer ? 0} Left position of outer element
 		 * @param top {Integer ? 0} Top position of outer element
 		 */
-		setPosition: function(left, top) {
+		setPosition: function (left, top) {
 
 			var self = this;
 
@@ -536,7 +533,7 @@ var Scroller;
 		 * @param width {Integer} Snapping width
 		 * @param height {Integer} Snapping height
 		 */
-		setSnapSize: function(width, height) {
+		setSnapSize: function (width, height) {
 
 			var self = this;
 
@@ -556,7 +553,7 @@ var Scroller;
 		 * @param deactivateCallback {Function} Callback to execute on deactivation. This is for signalling the user about the refresh being cancelled.
 		 * @param startCallback {Function} Callback to execute to start the real async refresh action. Call {@link #finishPullToRefresh} after finish of refresh.
 		 */
-		activatePullToRefresh: function(height, activateCallback, deactivateCallback, startCallback) {
+		activatePullToRefresh: function (height, activateCallback, deactivateCallback, startCallback) {
 
 			var self = this;
 
@@ -571,7 +568,7 @@ var Scroller;
 		/**
 		 * Starts pull-to-refresh manually.
 		 */
-		triggerPullToRefresh: function() {
+		triggerPullToRefresh: function () {
 			// Use publish instead of scrollTo to allow scrolling to out of boundary position
 			// We don't need to normalize scrollLeft, zoomLevel, etc. here because we only y-scrolling when pull-to-refresh is enabled
 			this.__publish(this.__scrollLeft, -this.__refreshHeight, this.__zoomLevel, true);
@@ -585,7 +582,7 @@ var Scroller;
 		/**
 		 * Signalizes that pull-to-refresh is finished.
 		 */
-		finishPullToRefresh: function() {
+		finishPullToRefresh: function () {
 
 			var self = this;
 
@@ -604,7 +601,7 @@ var Scroller;
 		 *
 		 * @return {Map} `left` and `top` scroll position and `zoom` level
 		 */
-		getValues: function() {
+		getValues: function () {
 
 			var self = this;
 
@@ -622,7 +619,7 @@ var Scroller;
 		 *
 		 * @return {Map} `left` and `top` maximum scroll values
 		 */
-		getScrollMax: function() {
+		getScrollMax: function () {
 
 			var self = this;
 
@@ -644,7 +641,7 @@ var Scroller;
 		 * @param originTop {Number ? null} Zoom in at given top coordinate
 		 * @param callback {Function ? null} A callback that gets fired when the zoom is complete.
 		 */
-		zoomTo: function(level, animate, originLeft, originTop, callback) {
+		zoomTo: function (level, animate, originLeft, originTop, callback) {
 
 			var self = this;
 
@@ -653,7 +650,7 @@ var Scroller;
 			}
 
 			// Add callback if exists
-			if(callback) {
+			if (callback) {
 				self.__zoomComplete = callback;
 			}
 
@@ -713,7 +710,7 @@ var Scroller;
 		 * @param originTop {Number ? 0} Zoom in at given top coordinate
 		 * @param callback {Function ? null} A callback that gets fired when the zoom is complete.
 		 */
-		zoomBy: function(factor, animate, originLeft, originTop, callback) {
+		zoomBy: function (factor, animate, originLeft, originTop, callback) {
 
 			var self = this;
 
@@ -730,7 +727,7 @@ var Scroller;
 		 * @param animate {Boolean?false} Whether the scrolling should happen using an animation
 		 * @param zoom {Number?null} Zoom level to go to
 		 */
-		scrollTo: function(left, top, animate, zoom) {
+		scrollTo: function (left, top, animate, zoom) {
 
 			var self = this;
 
@@ -800,8 +797,8 @@ var Scroller;
 
 			// Publish new values
 			if (!self.__isTracking) {
-        self.__publish(left, top, zoom, animate);
-      }
+				self.__publish(left, top, zoom, animate);
+			}
 
 		},
 
@@ -813,7 +810,7 @@ var Scroller;
 		 * @param top {Number ? 0} Scroll x-axis by given offset
 		 * @param animate {Boolean ? false} Whether to animate the given change
 		 */
-		scrollBy: function(left, top, animate) {
+		scrollBy: function (left, top, animate) {
 
 			var self = this;
 
@@ -825,17 +822,16 @@ var Scroller;
 		},
 
 
-
 		/*
-		---------------------------------------------------------------------------
-			EVENT CALLBACKS
-		---------------------------------------------------------------------------
-		*/
+		 ---------------------------------------------------------------------------
+		 EVENT CALLBACKS
+		 ---------------------------------------------------------------------------
+		 */
 
 		/**
 		 * Mouse wheel handler for zooming support
 		 */
-		doMouseZoom: function(wheelDelta, timeStamp, pageX, pageY) {
+		doMouseZoom: function (wheelDelta, timeStamp, pageX, pageY) {
 
 			var self = this;
 			var change = wheelDelta > 0 ? 0.97 : 1.03;
@@ -848,7 +844,7 @@ var Scroller;
 		/**
 		 * Touch start handler for scrolling support
 		 */
-		doTouchStart: function(touches, timeStamp) {
+		doTouchStart: function (touches, timeStamp) {
 			// Array-like check is enough here
 			if (touches.length == null) {
 				throw new Error("Invalid touch list: " + touches);
@@ -875,7 +871,7 @@ var Scroller;
 
 			// Stop animation
 			if (self.__isAnimating) {
-        core.effect.Animate.stop(self.__isAnimating);
+				core.effect.Animate.stop(self.__isAnimating);
 				self.__isAnimating = false;
 				self.__interruptedAnimation = true;
 			}
@@ -933,7 +929,7 @@ var Scroller;
 		/**
 		 * Touch move handler for scrolling support
 		 */
-		doTouchMove: function(touches, timeStamp, scale) {
+		doTouchMove: function (touches, timeStamp, scale) {
 
 			// Array-like check is enough here
 			if (touches.length == null) {
@@ -1018,7 +1014,7 @@ var Scroller;
 						// Slow down on the edges
 						if (self.options.bouncing) {
 
-							scrollLeft += (moveX / 2  * this.options.speedMultiplier);
+							scrollLeft += (moveX / 2 * this.options.speedMultiplier);
 
 						} else if (scrollLeft > maxScrollLeft) {
 
@@ -1088,7 +1084,7 @@ var Scroller;
 				// Sync scroll position
 				self.__publish(scrollLeft, scrollTop, level);
 
-			// Otherwise figure out whether we are switching into dragging mode now.
+				// Otherwise figure out whether we are switching into dragging mode now.
 			} else {
 
 				var minimumTrackingForScroll = self.options.locking ? 3 : 0;
@@ -1121,7 +1117,7 @@ var Scroller;
 		/**
 		 * Touch end handler for scrolling support
 		 */
-		doTouchEnd: function(timeStamp) {
+		doTouchEnd: function (timeStamp) {
 
 			if (timeStamp instanceof Date) {
 				timeStamp = timeStamp.valueOf();
@@ -1193,7 +1189,7 @@ var Scroller;
 					}
 				} else if ((timeStamp - self.__lastTouchMove) > 100) {
 					self.options.scrollingComplete();
-	 			}
+				}
 			}
 
 			// If this was a slower move it is per default non decelerated, but this
@@ -1238,12 +1234,11 @@ var Scroller;
 		},
 
 
-
 		/*
-		---------------------------------------------------------------------------
-			PRIVATE API
-		---------------------------------------------------------------------------
-		*/
+		 ---------------------------------------------------------------------------
+		 PRIVATE API
+		 ---------------------------------------------------------------------------
+		 */
 
 		/**
 		 * Applies the scroll position to the content element
@@ -1252,14 +1247,14 @@ var Scroller;
 		 * @param top {Number} Top scroll position
 		 * @param animate {Boolean?false} Whether animation should be used to move to the new coordinates
 		 */
-		__publish: function(left, top, zoom, animate) {
+		__publish: function (left, top, zoom, animate) {
 
 			var self = this;
 
 			// Remember whether we had an animation, then we try to continue based on the current "drive" of the animation
 			var wasAnimating = self.__isAnimating;
 			if (wasAnimating) {
-        core.effect.Animate.stop(wasAnimating);
+				core.effect.Animate.stop(wasAnimating);
 				self.__isAnimating = false;
 			}
 
@@ -1278,7 +1273,7 @@ var Scroller;
 				var diffTop = top - oldTop;
 				var diffZoom = zoom - oldZoom;
 
-				var step = function(percent, now, render) {
+				var step = function (percent, now, render) {
 
 					if (render) {
 
@@ -1294,11 +1289,11 @@ var Scroller;
 					}
 				};
 
-				var verify = function(id) {
+				var verify = function (id) {
 					return self.__isAnimating === id;
 				};
 
-				var completed = function(renderedFramesPerSecond, animationId, wasFinished) {
+				var completed = function (renderedFramesPerSecond, animationId, wasFinished) {
 					if (animationId === self.__isAnimating) {
 						self.__isAnimating = false;
 					}
@@ -1308,7 +1303,7 @@ var Scroller;
 
 					if (self.options.zooming) {
 						self.__computeScrollMax();
-						if(self.__zoomComplete) {
+						if (self.__zoomComplete) {
 							self.__zoomComplete();
 							self.__zoomComplete = null;
 						}
@@ -1316,7 +1311,7 @@ var Scroller;
 				};
 
 				// When continuing based on previous animation we choose an ease-out animation instead of ease-in-out
-        self.__isAnimating = core.effect.Animate.start(step, verify, completed, self.options.animationDuration, wasAnimating ? easeOutCubic : easeInOutCubic);
+				self.__isAnimating = core.effect.Animate.start(step, verify, completed, self.options.animationDuration, wasAnimating ? easeOutCubic : easeInOutCubic);
 
 			} else {
 
@@ -1332,7 +1327,7 @@ var Scroller;
 				// Fix max scroll ranges
 				if (self.options.zooming) {
 					self.__computeScrollMax();
-					if(self.__zoomComplete) {
+					if (self.__zoomComplete) {
 						self.__zoomComplete();
 						self.__zoomComplete = null;
 					}
@@ -1344,7 +1339,7 @@ var Scroller;
 		/**
 		 * Recomputes scroll minimum values based on client dimensions and content dimensions.
 		 */
-		__computeScrollMax: function(zoomLevel) {
+		__computeScrollMax: function (zoomLevel) {
 
 			var self = this;
 
@@ -1358,18 +1353,17 @@ var Scroller;
 		},
 
 
-
 		/*
-		---------------------------------------------------------------------------
-			ANIMATION (DECELERATION) SUPPORT
-		---------------------------------------------------------------------------
-		*/
+		 ---------------------------------------------------------------------------
+		 ANIMATION (DECELERATION) SUPPORT
+		 ---------------------------------------------------------------------------
+		 */
 
 		/**
 		 * Called when a touch sequence end and the speed of the finger was high enough
 		 * to switch into deceleration mode.
 		 */
-		__startDeceleration: function(timeStamp) {
+		__startDeceleration: function (timeStamp) {
 
 			var self = this;
 
@@ -1397,7 +1391,7 @@ var Scroller;
 			}
 
 			// Wrap class method
-			var step = function(percent, now, render) {
+			var step = function (percent, now, render) {
 				self.__stepThroughDeceleration(render);
 			};
 
@@ -1406,7 +1400,7 @@ var Scroller;
 
 			// Detect whether it's still worth to continue animating steps
 			// If we are already slow enough to not being user perceivable anymore, we stop the whole process here.
-			var verify = function() {
+			var verify = function () {
 				var shouldContinue = Math.abs(self.__decelerationVelocityX) >= minVelocityToKeepDecelerating || Math.abs(self.__decelerationVelocityY) >= minVelocityToKeepDecelerating;
 				if (!shouldContinue) {
 					self.__didDecelerationComplete = true;
@@ -1414,7 +1408,7 @@ var Scroller;
 				return shouldContinue;
 			};
 
-			var completed = function(renderedFramesPerSecond, animationId, wasFinished) {
+			var completed = function (renderedFramesPerSecond, animationId, wasFinished) {
 				self.__isDecelerating = false;
 				if (self.__didDecelerationComplete) {
 					self.options.scrollingComplete();
@@ -1435,7 +1429,7 @@ var Scroller;
 		 *
 		 * @param inMemory {Boolean?false} Whether to not render the current step, but keep it in memory only. Used internally only!
 		 */
-		__stepThroughDeceleration: function(render) {
+		__stepThroughDeceleration: function (render) {
 
 			var self = this;
 
@@ -1555,12 +1549,14 @@ var Scroller;
 		Scroller.prototype[key] = members[key];
 	}
 
-  if (typeof module != 'undefined' && module.exports) {
-    module.exports = Scroller;
-  } else if (typeof define == 'function' && define.amd) {
-    define( function () { return Scroller; } );
-  } else {
-    window.Scroller = Scroller;
-  }
+	if (typeof module != 'undefined' && module.exports) {
+		module.exports = Scroller;
+	} else if (typeof define == 'function' && define.amd) {
+		define(function () {
+			return Scroller;
+		});
+	} else {
+		window.Scroller = Scroller;
+	}
 
 })(window);
