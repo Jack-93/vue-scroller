@@ -1,13 +1,13 @@
 {
-  "name": "vue-scroller",
+  "name": "vue-cool-scroller",
   "version": "1.0.0",
-  "description": "Vue component for smooth scrolling, pull to refresh & infinite loading.",
+  "description": "fork to wangdahoo",
   "main": "dist/vue-scroller.min.js",
   "author": "kaibian <kaibian@foxmail.com>",
-  "homepage": "https://github.com/wangdahoo/vue-scroller",
+  "homepage": "https://github.com/Jack-93/vue-scroller",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wangdahoo/vue-scroller.git"
+    "url": "https://github.com/Jack-93/vue-scroller.git"
   },
   "scripts": {
     "dev": "webpack-dev-server --inline --hot --host=0.0.0.0 --port=8080",
